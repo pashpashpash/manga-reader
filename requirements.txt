@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+PyMuPDF
+tiktoken
+python-multipart
+nltk
+llmsherpa
+python-dotenv
+openai
+Pillow
