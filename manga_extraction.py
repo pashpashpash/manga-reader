@@ -57,21 +57,6 @@ def encode_images_to_base64(image_array):
     return base64_images
 
 
-def extract_page_images_by_chapter(chapters_to_recap):
-    pdf_files = ["naruto-v10/profiles.pdf"]+[f"naruto-v10/{chapter}.pdf" for chapter in chapters_to_recap]
-
-    # Generate the image array from the specified PDFs
-    image_array = generate_image_array_from_pdfs(pdf_files)
-    print("Images have been extracted and stored in memory.")
-    print("Number of images:", len(image_array))
-
-    scaled_images = [scale_image(img) for img in image_array]
-
-    base_64_images = encode_images_to_base64(scaled_images)
-
-    return base_64_images
-
-
 def extract_all_pages_as_images(filename):
     # Generate the image array from the specified PDFs
     image_array = generate_image_array_from_pdfs([filename])
@@ -83,9 +68,9 @@ def extract_all_pages_as_images(filename):
     return base_64_images
 
 
-def save_important_pages(volume, profile_pages, chapter_pages):
-    profile_dir = "naruto-v10/profiles"
-    chapter_dir = "naruto-v10/chapters"
+def save_important_pages(volume, profile_pages, chapter_pages, volume_number):
+    profile_dir = f"naruto/v{volume_number}/profiles"
+    chapter_dir = f"naruto/v{volume_number}/chapters"
     
     # Remove existing content and recreate the directories
     if os.path.exists(profile_dir):

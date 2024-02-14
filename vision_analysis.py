@@ -87,14 +87,14 @@ def detect_important_pages(profile_reference, chapter_reference, pages, client, 
 JSON_PARSE_PROMPT ="""
 You are a JSON parser. Return a properly formatted json object based on the input from the user.
 Your response must be in the following format:
-{"important_pages": Array<{"page_index": int 0-9, "page_type": "profile" | "chapter"}>}
+{"important_pages": Array<{"image_index": int 0-19, "type": "profile" | "chapter"}>}
 
 Examples of valid responses:
 ```
 {
     "important_pages": [
-        {"page_index": 0, "page_type": "profile"},
-        {"page_index": 3, "page_type": "chapter"}
+        {"image_index": 0, "type": "profile"},
+        {"image_index": 17, "type": "chapter"}
     ]
 }
 ```

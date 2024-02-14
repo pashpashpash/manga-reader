@@ -48,7 +48,7 @@ OPENAI_API_KEY=your_openai_api_key_here
 
 5. Prepare Your Manga PDFs
 
-Place your manga PDF files in a directory structure as expected by the script, for example, `naruto-v10/` containing chapters as PDF files.
+Place your manga PDF files in a directory structure as expected by the script, for example, `naruto/` containing chapters as PDF files.
 
 
 ## Running the Project

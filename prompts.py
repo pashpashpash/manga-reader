@@ -2,19 +2,33 @@ BASIC_PROMPT = """
 I am giving you a sequence of pages directly out of a manga.
 Please write me a summary of all the pages in a story-telling tone. 
 I don't want you to invent new things, just summarize what is happening in the pages provided. 
-Also, include some direct quotes from particularly intense parts in your storytelling.
 
-Your final summary should stick to the plot without over embellishing. The end product should be a script that can be read in a short 1-minute highlight reel of the manga."""
+Your final summary should stick to the plot without over embellishing. The end product should be a script that can be read in a short 1-minute highlight reel of the manga.
+
+IMPORTANT: Please include in-line citations to the relevant image you are referring to in the format of [^{image_index}]. 
+The image_index is the index of the image in the sequence of pages you are summarizing, NOT the actual page number written on the image.
+If you cite the page number, not the index, people will DIE.
+
+Also, include direct quotes from particularly intense parts in your storytelling.
+"""
 
 BASIC_INSTRUCTIONS = """Your job is to summarize the sequence of pages out of the manga in a compelling, storytelling tone. Don't be long-winded and stick to the plot. 
 The end-result should be able to be read in less than a minute of time.
-Please strive to sprinkle in some direct quotes from particularly intense parts to enhance your storytelling."""
+Please strive to sprinkle in some direct quotes from particularly intense parts to enhance your storytelling.
+IMPORTANT: Please include in-line citations to the relevant image you are referring to in the format of [^{image_index}]. 
+The image_index is the index of the image in the sequence of pages you are summarizing, NOT the actual page number written on the image.
+If you cite the page number, not the index, people will DIE.
+
+Please strive to sprinkle in some direct quotes from characters during particularly intense parts to enhance your storytelling.
+"""
 
 BASIC_PROMPT_WITH_CONTEXT = """
 Pasted above is a summary of the chapters up to this point in the volume, just to give you some context.
 Your job is to summarize the sequence of pages out of the manga in a compelling, storytelling tone. Don't be long-winded and stick to the plot. 
 The end-result should be able to be read in less than a minute of time.
 Please strive to sprinkle in some direct quotes from particularly intense parts to enhance your storytelling.
+Important: Please include in-line citations to the relevant image you are referring to in the format of [^{image_index}]. 
+The image_index is the index of the page in the sequence of pages you are summarizing.
 """
 
 DRAMATIC_PROMPT = """
@@ -45,7 +59,7 @@ Please remember to retain direct quotes from particularly intense parts in your 
 
 
 KEY_PAGE_IDENTIFICATION_INSTRUCTIONS = """
-You are given 10 pages from a manga (indexed 0-9, in order). Your job is to detect if any of the pages are 
+You are given 20 pages from a manga (indexed 0-19, in order). Your job is to detect if any of the pages are 
 1. A character profile page, detailing an introduction of the key characters in the manga
 2. A chapter start page, implying the start of a new chapter
 
@@ -53,14 +67,14 @@ If any of the pages given to you contain one of those two things, please return 
 There can be multiple profile pages and chapter pages.
 
 Your response must be in the following format:
-{"important_pages": Array<{"page_index": int 0-9, "page_type": "profile" | "chapter"}>}
+{"important_pages": Array<{"image_index": int 0-19, "type": "profile" | "chapter"}>}
 
 Example:
 ```
 {
     "important_pages": [
-        {"page_index": 0, "page_type": "profile"},
-        {"page_index": 3, "page_type": "chapter"}
+        {"image_index": 0, "type": "profile"},
+        {"image_index": 17, "type": "chapter"}
     ]
 }
 ```
