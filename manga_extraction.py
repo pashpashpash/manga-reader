@@ -1,6 +1,9 @@
 import fitz  # Import the PyMuPDF library
 from PIL import Image
 import io
+import base64
+import os
+
 
 def generate_image_array_from_pdfs(pdf_files):
     images = []  # Initialize an array to store images
@@ -45,3 +48,25 @@ def scale_image(image_bytes, square_size = 512):
     scaled_image_bytes = img_byte_arr.getvalue()
     
     return scaled_image_bytes
+
+def encode_images_to_base64(image_array):
+    base64_images = []
+    for img_bytes in image_array:
+        base64_images.append(base64.b64encode(img_bytes).decode('utf-8'))
+    return base64_images
+
+
+def extract_pages_images(chapters_to_recap):
+    pdf_files = ["naruto-v10/profiles.pdf"]+[f"naruto-v10/{chapter}.pdf" for chapter in chapters_to_recap]
+
+    # Generate the image array from the specified PDFs
+    image_array = generate_image_array_from_pdfs(pdf_files)
+    print("Images have been extracted and stored in memory.")
+    print("Number of images:", len(image_array))
+
+    scaled_images = [scale_image(img) for img in image_array]
+
+    base_64_images = encode_images_to_base64(scaled_images)
+
+    return base_64_images
+
