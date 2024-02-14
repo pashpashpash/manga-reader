@@ -40,6 +40,8 @@ pip3 install -r requirements.txt
 
 4. Set Up Environment Variables
 
+Create a .env file in the root directory of your project. Add your OpenAI API key to this file:
+
 ```
 OPENAI_API_KEY=your_openai_api_key_here
 ```
