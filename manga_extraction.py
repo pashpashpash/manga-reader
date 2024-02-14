@@ -2,6 +2,7 @@ import fitz  # Import the PyMuPDF library
 from PIL import Image
 import io
 import base64
+import shutil
 import os
 
 
@@ -56,7 +57,7 @@ def encode_images_to_base64(image_array):
     return base64_images
 
 
-def extract_pages_images(chapters_to_recap):
+def extract_page_images_by_chapter(chapters_to_recap):
     pdf_files = ["naruto-v10/profiles.pdf"]+[f"naruto-v10/{chapter}.pdf" for chapter in chapters_to_recap]
 
     # Generate the image array from the specified PDFs
@@ -70,3 +71,81 @@ def extract_pages_images(chapters_to_recap):
 
     return base_64_images
 
+
+def extract_all_pages_as_images(filename):
+    # Generate the image array from the specified PDFs
+    image_array = generate_image_array_from_pdfs([filename])
+
+    scaled_images = [scale_image(img) for img in image_array]
+
+    base_64_images = encode_images_to_base64(scaled_images)
+
+    return base_64_images
+
+
+def save_important_pages(volume, profile_pages, chapter_pages):
+    profile_dir = "naruto-v10/profiles"
+    chapter_dir = "naruto-v10/chapters"
+    
+    # Remove existing content and recreate the directories
+    if os.path.exists(profile_dir):
+        shutil.rmtree(profile_dir)
+    os.makedirs(profile_dir)
+
+    if os.path.exists(chapter_dir):
+        shutil.rmtree(chapter_dir)
+    os.makedirs(chapter_dir)
+    
+    # Save profile images
+    for i in profile_pages:
+        with open(f"{profile_dir}/{i}.png", "wb") as f:
+            f.write(base64.b64decode(volume[i]))
+
+    # Save chapter images
+    for i in chapter_pages:
+        with open(f"{chapter_dir}/{i}.png", "wb") as f:
+            f.write(base64.b64decode(volume[i]))
+
+
+def split_volume_into_parts(volume, chapter_pages, num_parts):
+    total_pages = len(volume)
+    parts = []
+    image_arrays = []
+
+    # Adjust the total number of pages to consider only the content's pages
+    content_start_page = chapter_pages[0]
+    content_pages = total_pages - content_start_page + 1  # +1 to include the first page in the count
+    pages_per_part = content_pages // num_parts
+
+    # The start page for the first part is now the first chapter page
+    start_page = content_start_page
+
+    for part in range(1, num_parts + 1):
+        # For the last part, ensure it ends with the total_pages
+        if part == num_parts:
+            end_page = total_pages
+        else:
+            # Target end page for this part within the content
+            target_end_page = start_page + pages_per_part - 1  # -1 to adjust for inclusive counting
+
+            # Find the nearest chapter end that is close to the target end page
+            for chapter_page in chapter_pages + [total_pages]:  # Ensure total_pages is considered in the loop
+                if chapter_page >= target_end_page or chapter_page == total_pages:
+                    end_page = chapter_page
+                    break
+        
+        # Append the slice of volume corresponding to this part
+        image_arrays.append(volume[start_page-1:end_page])  # -1 because list indexing starts at 0
+        parts.append((start_page, end_page))  # Keep track of the start and end pages for printing
+
+        # Update start_page for the next part
+        start_page = end_page + 1
+
+    # Printing the parts
+    for i, (start, end) in enumerate(parts):
+        if i == len(parts) - 1:  # For the last part
+            print(f"{start}->end ({end})")
+        else:
+            print(f"{start}->{end}")
+
+    return image_arrays

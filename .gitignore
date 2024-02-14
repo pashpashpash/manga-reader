@@ -5,3 +5,6 @@ venv
 .DS_Store
 
 .env
+
+/naruto-v10/chapters
+/naruto-v10/profiles
