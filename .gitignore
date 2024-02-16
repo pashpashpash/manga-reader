@@ -6,5 +6,7 @@ venv
 
 .env
 
-/naruto/chapters
-/naruto/profiles
+naruto/
+one-piece/
+
+.ipynb_checkpoints/

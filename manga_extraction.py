@@ -65,12 +65,12 @@ def extract_all_pages_as_images(filename):
 
     base_64_images = encode_images_to_base64(scaled_images)
 
-    return base_64_images
+    return {"scaled": encode_images_to_base64(scaled_images), "full": encode_images_to_base64(image_array)}
 
 
-def save_important_pages(volume, profile_pages, chapter_pages, volume_number):
-    profile_dir = f"naruto/v{volume_number}/profiles"
-    chapter_dir = f"naruto/v{volume_number}/chapters"
+def save_important_pages(volume, profile_pages, chapter_pages, manga, volume_number):
+    profile_dir = f"{manga}/v{volume_number}/profiles"
+    chapter_dir = f"{manga}/v{volume_number}/chapters"
     
     # Remove existing content and recreate the directories
     if os.path.exists(profile_dir):
@@ -90,6 +90,21 @@ def save_important_pages(volume, profile_pages, chapter_pages, volume_number):
     for i in chapter_pages:
         with open(f"{chapter_dir}/{i}.png", "wb") as f:
             f.write(base64.b64decode(volume[i]))
+
+def save_all_pages(volume, manga, volume_number):
+    pages_dir = f"{manga}/v{volume_number}/pages"
+    
+    # Remove existing content and recreate the directories
+    if os.path.exists(pages_dir):
+        shutil.rmtree(pages_dir)
+    os.makedirs(pages_dir)
+    
+    # Save profile images
+    for i, img in enumerate(volume):
+        with open(f"{pages_dir}/{i}.png", "wb") as f:
+            f.write(base64.b64decode(img))
+    
+    return pages_dir
 
 
 def split_volume_into_parts(volume, chapter_pages, num_parts):

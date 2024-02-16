@@ -3,32 +3,50 @@ I am giving you a sequence of pages directly out of a manga.
 Please write me a summary of all the pages in a story-telling tone. 
 I don't want you to invent new things, just summarize what is happening in the pages provided. 
 
-Your final summary should stick to the plot without over embellishing. The end product should be a script that can be read in a short 1-minute highlight reel of the manga.
+Your final summary should stick to the plot without over embellishing. The summary you write should be shorter than a minute of reading time.
 
-IMPORTANT: Please include in-line citations to the relevant image you are referring to in the format of [^{image_index}]. 
-The image_index is the index of the image in the sequence of pages you are summarizing, NOT the actual page number written on the image.
-If you cite the page number, not the index, people will DIE.
+REQUIRED: Please include in-line citations to the relevant image you are referring to in the format of `[^{image_index}]`. 
+The `image_index` is the index of the image in the sequence of pages you are summarizing, NOT the page number written on the image. 
+People will DIE if you cite the incorrect `image_index`.
 
-Also, include direct quotes from particularly intense parts in your storytelling.
+If you'd like to provide multiple `image_index` citations next to each other, simply write them all in sequence, like this: `[^{image_index1}][^{image_index2}][^{image_index3}]`.
+
+SUPER IMPORTANT: Sprinkle in direct quotes from particularly intense parts in your storytelling.
+REQUIRED: Every direct quote MUST have an `image_index` citation.
+
+REQUIRED: In-line image_index citations MUST be included in the same sentence as the text they are referencing. NO EXCEPTIONS.
 """
 
 BASIC_INSTRUCTIONS = """Your job is to summarize the sequence of pages out of the manga in a compelling, storytelling tone. Don't be long-winded and stick to the plot. 
-The end-result should be able to be read in less than a minute of time.
+The summary you write should be shorter than a minute of reading time.
 Please strive to sprinkle in some direct quotes from particularly intense parts to enhance your storytelling.
-IMPORTANT: Please include in-line citations to the relevant image you are referring to in the format of [^{image_index}]. 
-The image_index is the index of the image in the sequence of pages you are summarizing, NOT the actual page number written on the image.
-If you cite the page number, not the index, people will DIE.
+REQUIRED: You MUST include in-line citations to the relevant image you are referring to in the format of `[^{image_index}]`. 
+IMPORTANT: The `image_index` is the index of the image in the sequence of pages you are summarizing, NOT the page number written on the image.
+People will DIE if you cite the incorrect `image_index`. 
 
-Please strive to sprinkle in some direct quotes from characters during particularly intense parts to enhance your storytelling.
+If you'd like to provide multiple `image_index` citations next to each other, simply write them all in sequence, like this: `[^{image_index1}][^{image_index2}][^{image_index3}]`.
+
+SUPER IMPORTANT: Please strive to sprinkle in some direct quotes from characters during particularly intense parts to enhance your storytelling.
+REQUIRED: Every direct quote MUST have an `image_index` citation.
+
+REQUIRED: In-line image_index citations MUST be included in the same sentence as the text they are referencing. NO EXCEPTIONS.
 """
 
 BASIC_PROMPT_WITH_CONTEXT = """
 Pasted above is a summary of the chapters up to this point in the volume, just to give you some context.
 Your job is to summarize the sequence of pages out of the manga in a compelling, storytelling tone. Don't be long-winded and stick to the plot. 
-The end-result should be able to be read in less than a minute of time.
-Please strive to sprinkle in some direct quotes from particularly intense parts to enhance your storytelling.
-Important: Please include in-line citations to the relevant image you are referring to in the format of [^{image_index}]. 
-The image_index is the index of the page in the sequence of pages you are summarizing.
+The summary you write should be shorter than a minute of reading time.
+
+REQUIRED: Please include in-line citations to the relevant image you are referring to in the format of `[^{image_index}]`. 
+The `image_index` is the index of the image in the sequence of pages you are summarizing, NOT the page number written on the image. 
+People will DIE if you cite the incorrect `image_index`.
+
+If you'd like to provide multiple `image_index` citations next to each other, simply write them all in sequence, like this: `[^{image_index1}][^{image_index2}][^{image_index3}]`.
+
+SUPER IMPORTANT: Sprinkle in direct quotes from particularly intense parts in your storytelling.
+REQUIRED: Every direct quote MUST have an `image_index` citation.
+
+REQUIRED: In-line image_index citations MUST be included in the same sentence as the text they are referencing. NO EXCEPTIONS.
 """
 
 DRAMATIC_PROMPT = """

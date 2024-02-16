@@ -1,0 +1,5 @@
+numpy
+skimage
+cv2
+torch
+torchvision

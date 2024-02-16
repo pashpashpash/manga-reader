@@ -1,5 +1,10 @@
 import json 
 
+#$0.01/1000 tokens
+VISION_PRICE_PER_TOKEN = 0.00001
+#0.0005/1000 tokens
+GPT_3_5_TURBO_PRICE_PER_TOKEN = 0.0000005
+
 def analyze_images_with_gpt4_vision(character_profiles, pages, client, prompt, instructions, detail="low"):
     # Construct the messages including the prompt and images
     messages = [
