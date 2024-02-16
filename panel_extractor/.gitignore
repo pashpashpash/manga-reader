@@ -3,3 +3,5 @@ __pycache__
 venv
 
 .DS_Store
+
+text_detector/weights/
