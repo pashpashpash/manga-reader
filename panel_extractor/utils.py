@@ -4,6 +4,7 @@ import os
 import numpy as np
 from skimage import io
 import cv2
+import base64
 
 
 def get_files(img_dir):
@@ -40,4 +41,11 @@ def load_image(img_file):
         img = img[:, :, :3]
     img = np.array(img)
 
+    return img
+
+
+def load_image_from_base64(base64_string):
+    img_data = base64.b64decode(base64_string)
+    img_array = np.array(bytearray(img_data), dtype=np.uint8)
+    img = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
     return img

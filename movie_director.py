@@ -45,10 +45,18 @@ def create_movie_from_script(script, manga, volume_number):
 
     for segment_index, segment in enumerate(script):
         narration_audio = segment["narration"]  # This is a BytesIO object
-        base64_images = segment["images"]  # This should be a list of base64 strings
+        important_panels = segment["important_panels"]
+        base64_images = segment["images_unscaled"]  # This should be a list of base64 strings
         print(f"Number of images in segment {segment_index}:", len(base64_images))
+        scene_images = []
+
         if len(base64_images) == 0:
+            print(f"No images found for segment {segment_index}. Skipping...")
             continue
+
+        scene_images = important_panels
+        if len(important_panels) == 0:
+            scene_images = base64_images
 
         # Create a unique temporary audio file path for each segment
         temp_audio_path = f"{manga}/v{volume_number}/temp_audio_{segment_index}.mp3"
@@ -61,9 +69,9 @@ def create_movie_from_script(script, manga, volume_number):
         audio_duration = audio_clip.duration
         print("Audio duration:", audio_duration)
 
-        image_display_duration = audio_duration / len(base64_images)
+        image_display_duration = audio_duration / len(scene_images)
         segment_clips = []
-        for base64_image in base64_images:
+        for base64_image in scene_images:
             image_data = base64.b64decode(base64_image)
             scaled_image = scale_image_to_720p(image_data)  # Assume this function returns scaled image data
 

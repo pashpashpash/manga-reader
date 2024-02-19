@@ -1,6 +1,6 @@
 BASIC_PROMPT = """
 I am giving you a sequence of pages directly out of a manga.
-Please write me a summary of all the pages in a story-telling tone. 
+Please write me a SHORT, CONCISE summary of all the pages in a story-telling tone (MAXIMUM 200 WORDS). 
 I don't want you to invent new things, just summarize what is happening in the pages provided. 
 
 Your final summary should stick to the plot without over embellishing. The summary you write should be shorter than a minute of reading time.
@@ -18,7 +18,7 @@ REQUIRED: In-line image_index citations MUST be included in the same sentence as
 """
 
 BASIC_INSTRUCTIONS = """Your job is to summarize the sequence of pages out of the manga in a compelling, storytelling tone. Don't be long-winded and stick to the plot. 
-The summary you write should be shorter than a minute of reading time.
+The summary you write should be shorter than a minute of reading time (MAXIMUM 200 WORDS).
 Please strive to sprinkle in some direct quotes from particularly intense parts to enhance your storytelling.
 REQUIRED: You MUST include in-line citations to the relevant image you are referring to in the format of `[^{image_index}]`. 
 IMPORTANT: The `image_index` is the index of the image in the sequence of pages you are summarizing, NOT the page number written on the image.
@@ -35,7 +35,7 @@ REQUIRED: In-line image_index citations MUST be included in the same sentence as
 BASIC_PROMPT_WITH_CONTEXT = """
 Pasted above is a summary of the chapters up to this point in the volume, just to give you some context.
 Your job is to summarize the sequence of pages out of the manga in a compelling, storytelling tone. Don't be long-winded and stick to the plot. 
-The summary you write should be shorter than a minute of reading time.
+The summary you write should be shorter than a minute of reading time (MAXIMUM 200 WORDS).
 
 REQUIRED: Please include in-line citations to the relevant image you are referring to in the format of `[^{image_index}]`. 
 The `image_index` is the index of the image in the sequence of pages you are summarizing, NOT the page number written on the image. 
@@ -105,4 +105,44 @@ If none of the pages contain a character profile or chapter start, return an emp
 ```
 
 Please respond with nothing else other than a properly formatted JSON object. If you fail to do so, people will die.
+"""
+
+KEY_PANEL_IDENTIFICATION_PROMPT = """
+Pasted above is a short summary text of what is happening in the manga.
+I'm also uploading a sequence of panel images from a manga (indexed starting from 0). 
+Your job is to identify which panels are the most relevant to the text provided.
+
+Your response must be in the following format:
+{"important_panels": Array<int>}
+
+Example:
+```
+{
+    "important_panels": [0, 2, 5]
+}
+
+Each number in the array represents the index number of the panel in the sequence of panels you are given. 
+Always return at least one panel index in the array. Limit your selections to the most relevant panels to the text provided.
+
+Please respond with nothing else other than a properly formatted JSON object. If you fail to do so, people will die.
+```
+"""
+
+KEY_PANEL_IDENTIFICATION_INSTRUCTIONS = """
+You are given a sequence of panel images from a manga (indexed starting from 0). Your job is to identify which panels are the most relevant to the text provided.
+
+Your response must be in the following format:
+{"important_panels": Array<int>}
+
+Example:
+```
+{
+    "important_panels": [0, 2, 5]
+}
+
+Each number in the array represents the index of the panel in the sequence of panels you are given. 
+Always return at least one panel index. Limit your selections to the most relevant panels to the text provided.
+
+Please respond with nothing else other than a properly formatted JSON object. If you fail to do so, people will die.
+```
 """

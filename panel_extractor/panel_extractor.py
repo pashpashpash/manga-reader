@@ -6,9 +6,11 @@ from tqdm import tqdm
 import numpy as np
 from skimage import measure
 import cv2
+import base64
+
 # project
 from .text_detector.main_text_detector import TextDetector
-from .utils import get_files, load_image
+from .utils import get_files, load_image, load_image_from_base64
 
 
 class PanelExtractor:
@@ -30,7 +32,10 @@ class PanelExtractor:
         thresh = cv2.threshold(blur, 230, 255, cv2.THRESH_BINARY)[1]
         cv2.rectangle(thresh, (0, 0), tuple(img.shape[::-1]), (0, 0, 0), 10)
         num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(thresh, 4, cv2.CV_32S)
-        ind = np.argsort(stats[:, 4], )[::-1][1]
+        if len(np.argsort(stats[:, 4])[::-1]) > 1:
+            ind = np.argsort(stats[:, 4], )[::-1][1]
+        else:
+            return np.ones(img.shape, dtype="uint8") * 255
         panel_block_mask = ((labels == ind) * 255).astype("uint8")
         return panel_block_mask
 
@@ -97,30 +102,35 @@ class PanelExtractor:
             # buble mask
             bubble_masks.append(np.isin(all_labels, labels) * 255)
 
-    def extract(self, folder):
+    def extract(self, base64_images):
         print("Loading images ... ", end="")
-        image_list, _, _ = get_files(folder)
-        imgs = [load_image(x) for x in image_list]
-        print("Done!")
+        # Decode each base64 string to an image array
+        imgs = [load_image_from_base64(x) for x in base64_images]
+        print("Number of images loaded:", len(imgs))
 
-        # create panels dir
-        if not exists(join(folder, "panels")):
-            makedirs(join(folder, "panels"))
-        folder = join(folder, "panels")
+        # Dictionary to store base64 encoded panels
+        panels_dict = {}
 
-        # remove images with paper texture, not well segmented
-        paperless_imgs = []
-        for img in tqdm(imgs, desc="Removing images with paper texture"):
+        for i, img in tqdm(enumerate(imgs), desc="Processing images"):
+            # Check for paper texture
             hist, bins = np.histogram(img.copy().ravel(), 256, [0, 256])
             if np.sum(hist[50:200]) / np.sum(hist) < self.paper_th:
-                paperless_imgs.append(img)
+                # If the image passes the paper texture check, process it
+                if not self.keep_text:
+                    img = self.remove_text([img])[0]  # Assuming remove_text can handle individual images or you adjust it accordingly
 
-        # remove text from panels
-        if not self.keep_text:
-            paperless_imgs = self.remove_text(paperless_imgs)
+                panels = self.generate_panels(img)
+                base64_panels = []
+                for panel in panels:
+                    # Convert panel to base64 encoded PNG
+                    _, encoded_image = cv2.imencode('.png', panel)
+                    base64_string = base64.b64encode(encoded_image).decode('utf-8')
+                    base64_panels.append(base64_string)
 
-        for i, img in tqdm(enumerate(paperless_imgs), desc="extracting panels"):
-            panels = self.generate_panels(img)
-            name, ext = splitext(basename(image_list[i]))
-            for j, panel in enumerate(panels):
-                cv2.imwrite(join(folder, f'{name}_{j}.{ext}'), panel)
+                # Use the original index as key
+                panels_dict[i] = base64_panels
+            else:
+                print(f"Image {i} failed the paper texture check")
+                panels_dict[i] = [base64_images[i]]
+
+        return panels_dict

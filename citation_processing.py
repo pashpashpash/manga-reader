@@ -12,7 +12,7 @@ def clean_and_relocate_citations_sequence(text):
     return relocated_text
 
 
-def extract_text_and_citations(text, images):
+def extract_text_and_citations(text, images, images_unscaled):
     text = clean_and_relocate_citations_sequence(text)
     # Split text by citations, capturing the citations as well
     parts = re.split(r'(\[\^[\d\]]+\])', text)
@@ -50,23 +50,34 @@ def extract_text_and_citations(text, images):
     # iterate through the output and add an array of images to each object, corresponding to the citations
     for i, obj in enumerate(output):
         movie_images = []
+        movie_images_unscaled = []
         for citation in obj["citations"]:
             if citation < len(images):
                 movie_images.append(images[citation])
+                movie_images_unscaled.append(images_unscaled[citation])
 
         obj["images"] = movie_images
+        obj["images_unscaled"] = movie_images_unscaled
 
+    # cleanup step -- rolling up blocks with no citations into the next available block with citations, while maintaining the order of the text.
+    output.reverse()
+    i = len(output) - 1
+    while i > 0:
+        if not output[i]["citations"]:
+            # Merge this block's text with the previous one
+            output[i - 1]["text"] = output[i]["text"] + " " + output[i - 1]["text"]
+            output[i - 1]["citations"].extend(output[i]["citations"])  # In case there are any
+            del output[i]  # Remove the current block after merging
+        i -= 1
     
-    cleaned_output = []
-    for i in range(len(output)):
-        if output[i]["images"] or not output[i]["text"]:
-            cleaned_output.append(output[i])
-        else:
-            if i + 1 < len(output):
-                output[i + 1]["text"] = output[i]["text"] + " " + output[i + 1]["text"]
-            elif i > 0:
-                cleaned_output[-1]["text"] += " " + output[i]["text"]
+    if len(output) > 1 and not output[0]["citations"]:
+        # If the first block has no citations, merge its text with the next block
+        output[1]["text"] = output[1]["text"] + " " + output[0]["text"]
+        del output[0]
     
+    output.reverse()
+
+    # No need for cleaned_output, output is now cleaned
     return output
 
 
