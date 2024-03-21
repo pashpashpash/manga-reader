@@ -27,7 +27,7 @@ async def add_narrations_to_script(script, client):
             # Since convert is an async generator, we use async for to iterate over it
             async for audio_bytes in client.text_to_speech.convert(
                 text=entry["text"],
-                voice_id="co5EwqAaJf1JrFZUYPLX"
+                voice_id="sZmNxSXCR0zfeTkqqiQD" # Replace with your chosen voice ID
             ):
                 audio_bytes_io.write(audio_bytes)
             # After collecting all bytes, we can optionally seek to the start

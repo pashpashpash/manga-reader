@@ -1,4 +1,5 @@
 import json 
+import time
 
 #$0.01/1000 tokens
 VISION_PRICE_PER_TOKEN = 0.00001
@@ -143,6 +144,9 @@ def get_important_panels(profile_reference, panels, client, prompt, instructions
     except Exception as e:
         if 'content_policy_violation' in str(e):
             print("The input image may contain content that is not allowed by OpenAI's safety system.")
+            return {"total_tokens": 0, "parsed_response": []}
+        if 'rate_limit_exceeded' in str(e):
+            print("Rate limit exceeded. Please wait a few minutes before trying again.")
             return {"total_tokens": 0, "parsed_response": []}
         else:
             raise e
