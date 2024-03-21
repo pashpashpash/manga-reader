@@ -2,7 +2,9 @@
 
 ## Project Overview
 
-This project aims to generate summaries of manga chapters by analyzing images extracted from PDF files of the manga. It uses the GPT-4 Vision API to understand the content of manga pages and produce compelling, story-telling tone summaries. The project processes PDFs to extract images, scales them to a specific size, encodes them in base64, and then uses these images as input for the GPT-4 Vision API alongside custom prompts to generate summaries.  Once a summary is generated, it is sent to ElevenLabs API for narration. The resulting narration and relevant panel images are then combined to create a video recap summarizing the volume.
+This project aims to generate summaries of manga volumes by analyzing images extracted from PDF files of the manga. It uses the GPT-4 Vision API to understand the content of manga pages and produce compelling, story-telling tone summaries. The project processes PDFs to extract images, scales them to a specific size, encodes them in base64, and then uses these images as input for the GPT-4 Vision API alongside custom prompts to generate summaries.  Once a summary is generated, it is sent to ElevenLabs API for narration. The resulting narration and relevant panel images are then combined to create a video recap summarizing the volume.
+
+https://github.com/pashpashpash/manga-reader/assets/20898225/debb0c15-3579-477c-813d-2ed878b0e6ea
 
 ## Features
 
