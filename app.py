@@ -81,7 +81,8 @@ async def main(volume_number, manga):
     save_important_pages(volume, profile_pages, chapter_pages, manga, volume_number)
 
     character_profiles = [volume[i] for i in profile_pages]    
-    jobs = split_volume_into_parts(volume, volume_unscaled, chapter_pages, 1)
+    NUMBER_OF_JOBS = 7
+    jobs = split_volume_into_parts(volume, volume_unscaled, chapter_pages, NUMBER_OF_JOBS)
     parts = jobs["parts"]
     jobs_unscaled = jobs["unscaled_images"]
     jobs = jobs["scaled_images"]
@@ -117,7 +118,7 @@ async def main(volume_number, manga):
     extract_panels(movie_script)
 
     print("number of segments:", len(movie_script))
-    
+
     for i, segment in enumerate(movie_script):
         print("segment", i, ": ", segment["text"])
         all_panels_base64 = [panel for sublist in segment["panels"].values() for panel in sublist]
