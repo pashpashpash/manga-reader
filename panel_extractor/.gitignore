@@ -4,4 +4,4 @@ venv
 
 .DS_Store
 
-text_detector/weights/
+# text_detector/weights/

@@ -146,12 +146,17 @@ def split_volume_into_parts(volume, volume_unscaled, chapter_pages, num_parts):
         end_index = min(chapter_pages, key=lambda x: abs((start_index + average_length_per_part) - x))
         # Ensure the end index does not regress or exceed the total length
         if end_index <= start_index or end_index > len(volume):
-            break
+            next_chapter_page = min([page for page in chapter_pages if page > start_index], default=None)
+            if end_index == start_index and next_chapter_page:
+                end_index = next_chapter_page - 1
+            else:
+                break
         parts.append((start_index, end_index))
         start_index = end_index + 1  # Next part starts from the next page
     
     # Ensure the last part ends with the volume
-    if parts[-1][1] < len(volume):
+    
+    if len(parts) == 0 or parts[-1][1] < len(volume):
         parts.append((start_index, len(volume)))
         
     scaled_images = []

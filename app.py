@@ -7,12 +7,11 @@ import os
 import argparse
 import concurrent.futures
 
-from manga_extraction import extract_all_pages_as_images, save_important_pages, split_volume_into_parts
-from vision_analysis import analyze_images_with_gpt4_vision, detect_important_pages, VISION_PRICE_PER_TOKEN 
-from prompts import DRAMATIC_PROMPT, BASIC_PROMPT, BASIC_PROMPT_WITH_CONTEXT,  BASIC_INSTRUCTIONS, KEY_PAGE_IDENTIFICATION_INSTRUCTIONS
+from manga_extraction import extract_all_pages_as_images, save_important_pages, split_volume_into_parts, save_all_pages, extract_panels, scale_base64_image
+from vision_analysis import analyze_images_with_gpt4_vision, detect_important_pages, get_important_panels, VISION_PRICE_PER_TOKEN 
+from prompts import DRAMATIC_PROMPT, BASIC_PROMPT, BASIC_PROMPT_WITH_CONTEXT,  BASIC_INSTRUCTIONS, KEY_PAGE_IDENTIFICATION_INSTRUCTIONS, KEY_PANEL_IDENTIFICATION_PROMPT, KEY_PANEL_IDENTIFICATION_INSTRUCTIONS
 from citation_processing import extract_text_and_citations, extract_script
 from movie_director import make_movie
-
 load_dotenv()  # Load environment variables from .env file
 
 async def main(volume_number, manga):
@@ -23,7 +22,8 @@ async def main(volume_number, manga):
 
     print("Extracting all pages from the volume...")
     volume_scaled_and_unscaled = extract_all_pages_as_images(f"{manga}/v{volume_number}/v{volume_number}.pdf")
-    volume = volume["scaled"]
+    volume = volume_scaled_and_unscaled["scaled"]
+    volume_unscaled = volume_scaled_and_unscaled["full"]
     print("Total pages in volume:", len(volume))
 
     profile_reference = extract_all_pages_as_images(f"{manga}/profile-reference.pdf")["scaled"]
@@ -37,7 +37,6 @@ async def main(volume_number, manga):
     batch_size = 20
 
     print("Identifying important pages in the volume...")
-
     # Function to wrap the detect_important_pages call
     def process_batch(start_idx, pages):
         response = detect_important_pages(profile_reference, chapter_reference, pages, client,
@@ -68,38 +67,44 @@ async def main(volume_number, manga):
 
     profile_pages.sort()
     chapter_pages.sort()
-    
 
     print("Total tokens to extract profiles and chapters:", important_page_tokens)
     print("\n__________\n")
     print("Profile pages:", profile_pages)
     print("Chapter pages:", chapter_pages)
+
+    chapter_pages = [1]
+    profile_pages = [0]
+    print(f"{len(volume)}")
     print("\n__________\n")
     print("Saving important pages to disk for QA...")
     save_important_pages(volume, profile_pages, chapter_pages, manga, volume_number)
 
-
     character_profiles = [volume[i] for i in profile_pages]    
-    jobs = split_volume_into_parts(volume, chapter_pages, 5)
+    jobs = split_volume_into_parts(volume, volume_unscaled, chapter_pages, 1)
+    parts = jobs["parts"]
+    jobs_unscaled = jobs["unscaled_images"]
+    jobs = jobs["scaled_images"]
 
-    
     # Summarize the images in the first job
     response = analyze_images_with_gpt4_vision(character_profiles, jobs[0], client, BASIC_PROMPT, BASIC_INSTRUCTIONS)
     recap = response.choices[0].message.content
     tokens = response.usage.total_tokens
-    movie_script = extract_text_and_citations(response.choices[0].message.content, jobs[0])
+    movie_script = extract_text_and_citations(response.choices[0].message.content, jobs[0], jobs_unscaled[0])
 
     print("\n\n\n_____________\n\n\n")
     print(response.choices[0].message.content)
 
     # iterate thrugh the rest of the jobs while adding context from previous ones
-    for job in jobs[1:]:
+    for i, job in enumerate(jobs):
+        if i == 0:
+            continue
         response = analyze_images_with_gpt4_vision(character_profiles, job, client, recap + "\n-----\n" + BASIC_PROMPT_WITH_CONTEXT, BASIC_INSTRUCTIONS)
         recap = recap + "\n\n" + response.choices[0].message.content
         tokens += response.usage.total_tokens
         print("\n\n\n_____________\n\n\n")
         print(response.choices[0].message.content)
-        movie_script = movie_script + extract_text_and_citations(response.choices[0].message.content, job)
+        movie_script = movie_script + extract_text_and_citations(response.choices[0].message.content, job, jobs_unscaled[i])
 
     print("\n\n\n_____________\n\n\n")
     print("\n\n\n_____________\n\n\n")
@@ -108,16 +113,10 @@ async def main(volume_number, manga):
     narration_script = extract_script(movie_script)
     print(narration_script)
     print("\n___________\n")
-    
-    ELEVENLABS_PRICE_PER_CHARACTER = 0.0003
-    print("Tokens for extracting profiles and chapters:", important_page_tokens, " | ", "${:,.4f}".format(VISION_PRICE_PER_TOKEN * important_page_tokens))
-    print("Tokens for summarization:", tokens,  " | ", "${:,.4f}".format(VISION_PRICE_PER_TOKEN * tokens))
-    print("Total GPT tokens:", important_page_tokens + tokens,  " | ", "${:,.4f}".format(VISION_PRICE_PER_TOKEN * (tokens+important_page_tokens)))
-    print("Total elevenlabs characters:", len(narration_script), " | ", "${:,.4f}".format(ELEVENLABS_PRICE_PER_CHARACTER * (len(narration_script))))
-    print("GRAND TOTAL COST"," | ", "${:,.4f}".format(VISION_PRICE_PER_TOKEN * (tokens+important_page_tokens) + ELEVENLABS_PRICE_PER_CHARACTER * (len(narration_script))))
+
+    extract_panels(movie_script)
 
     await make_movie(movie_script, manga, volume_number, narration_client)
-
 
 
 if __name__ == "__main__":
