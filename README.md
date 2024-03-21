@@ -68,5 +68,5 @@ This script processes the specified PDF files, extracts and scales images, encod
 
 ## Optional/Recommended running instructions
 
-I personally recommend running this in a Jupiter notebook (`anime_recap.ipynb`), as it allows you run the script one cell at a time, which is useful for debugging and understanding the process. 
+I personally recommend running this in a Jupiter notebook ([anime_recap.ipynb](anime_recap.ipynb), as it allows you run the script one cell at a time, which is useful for debugging and understanding the process. 
 
