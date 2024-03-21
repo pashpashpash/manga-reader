@@ -116,6 +116,83 @@ async def main(volume_number, manga):
 
     extract_panels(movie_script)
 
+    print("number of segments:", len(movie_script))
+    
+    for i, segment in enumerate(movie_script):
+        print("segment", i, ": ", segment["text"])
+        all_panels_base64 = [panel for sublist in segment["panels"].values() for panel in sublist]
+        print(len(all_panels_base64))
+        print("number of panels:", len(all_panels_base64))
+        print("number of images:", len(segment["images"]))
+
+    def process_segment(segment_tuple):
+        i, segment = segment_tuple  # Unpack the tuple
+        panels = []
+        for j, page in enumerate(segment["images"]):
+            if "panels" in segment:
+                if j not in segment["panels"]:
+                    panels.append(page)
+                else:
+                    for panel in segment["panels"][j]:
+                        panels.append(panel)
+            else:
+                panels.append(page)
+        
+        scaled_panels = [scale_base64_image(p) for p in panels]
+
+
+        response = get_important_panels(profile_reference, scaled_panels, client, 
+            segment["text"] + "\n________\n" + KEY_PANEL_IDENTIFICATION_PROMPT, KEY_PANEL_IDENTIFICATION_INSTRUCTIONS)
+
+        important_panels = response["parsed_response"]
+        # check if important panels is an array
+        if not isinstance(important_panels, list):
+            important_panels = []
+
+        ip = []
+        for p in important_panels:
+            number = p
+            if isinstance(number, str):
+                if number.isdigit():
+                    number = int(number)
+            if not isinstance(number, int):
+                continue
+
+            if number < len(panels):
+                ip.append(panels[number])
+            
+        
+        return i, ip, response["total_tokens"]
+
+    # Initialize variables
+    panel_tokens = 0
+    important_panels_info = {}
+
+    # Use ThreadPoolExecutor to parallelize the processing
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        # Create a list of futures
+        futures = [executor.submit(process_segment, (i, segment)) for i, segment in enumerate(movie_script)]
+        
+        # Collect the results as they complete
+        for future in concurrent.futures.as_completed(futures):
+            i, ip, tokens = future.result()
+            if ip:
+                print("Important panels for segment", i, "exist.")
+            else: 
+                print("No important panels for segment", i)
+            movie_script[i]["important_panels"] = ip  # Assign the important panels back to the segment
+            panel_tokens += tokens
+
+
+    ELEVENLABS_PRICE_PER_CHARACTER = 0.0003
+    print("Tokens for extracting profiles and chapters:", important_page_tokens, " | ", "${:,.4f}".format(VISION_PRICE_PER_TOKEN * important_page_tokens))
+    print("Tokens for summarization:", tokens,  " | ", "${:,.4f}".format(VISION_PRICE_PER_TOKEN * tokens))
+    print("Tokens for extracting important panels:", panel_tokens, " | ", "${:,.4f}".format(VISION_PRICE_PER_TOKEN * panel_tokens))
+    total_gpt_tokens = important_page_tokens + tokens + panel_tokens
+    print("Total GPT tokens:", total_gpt_tokens,  " | ", "${:,.4f}".format(VISION_PRICE_PER_TOKEN * (total_gpt_tokens)))
+    print("Total elevenlabs characters:", len(narration_script), " | ", "${:,.4f}".format(ELEVENLABS_PRICE_PER_CHARACTER * (len(narration_script))))
+    print("GRAND TOTAL COST"," | ", "${:,.4f}".format(VISION_PRICE_PER_TOKEN * (total_gpt_tokens) + ELEVENLABS_PRICE_PER_CHARACTER * (len(narration_script))))
+
     await make_movie(movie_script, manga, volume_number, narration_client)
 
 
