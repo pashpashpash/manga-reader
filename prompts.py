@@ -75,7 +75,6 @@ Please remember to retain direct quotes from particularly intense parts in your 
 """
 
 
-
 KEY_PAGE_IDENTIFICATION_INSTRUCTIONS = """
 You are given 20 pages from a manga (indexed 0-19, in order). Your job is to detect if any of the pages are 
 1. A character profile page, detailing an introduction of the key characters in the manga

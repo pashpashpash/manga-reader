@@ -1,6 +1,7 @@
 # stdlib
-from os.path import splitext, basename, exists, join
-from os import makedirs
+# from os.path import splitext, basename, exists, join
+# from os import makedirs
+
 # 3p
 from tqdm import tqdm
 import numpy as np
@@ -14,15 +15,19 @@ from .utils import get_files, load_image, load_image_from_base64
 
 
 class PanelExtractor:
-    def __init__(self, keep_text=False, min_pct_panel=2, max_pct_panel=90, paper_th=0.35):
+    def __init__(
+        self, keep_text=False, min_pct_panel=2, max_pct_panel=90, paper_th=0.35
+    ):
         self.keep_text = keep_text
-        assert min_pct_panel < max_pct_panel, "Minimum percentage must be smaller than maximum percentage"
+        assert (
+            min_pct_panel < max_pct_panel
+        ), "Minimum percentage must be smaller than maximum percentage"
         self.min_panel = min_pct_panel / 100
         self.max_panel = max_pct_panel / 100
         self.paper_th = paper_th
 
         # Load text detector
-        print('Load text detector ... ', end="")
+        print("Load text detector ... ", end="")
         self.text_detector = TextDetector()
         print("Done!")
 
@@ -31,9 +36,15 @@ class PanelExtractor:
         blur = cv2.GaussianBlur(img, (5, 5), 0)
         thresh = cv2.threshold(blur, 230, 255, cv2.THRESH_BINARY)[1]
         cv2.rectangle(thresh, (0, 0), tuple(img.shape[::-1]), (0, 0, 0), 10)
-        num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(thresh, 4, cv2.CV_32S)
+        num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(
+            thresh, 4, cv2.CV_32S
+        )
         if len(np.argsort(stats[:, 4])[::-1]) > 1:
-            ind = np.argsort(stats[:, 4], )[::-1][1]
+            ind = np.argsort(
+                stats[:, 4],
+            )[
+                ::-1
+            ][1]
         else:
             return np.ones(img.shape, dtype="uint8") * 255
         panel_block_mask = ((labels == ind) * 255).astype("uint8")
@@ -41,10 +52,14 @@ class PanelExtractor:
 
     def generate_panels(self, img):
         block_mask = self._generate_panel_blocks(img)
-        cv2.rectangle(block_mask, (0, 0), tuple(block_mask.shape[::-1]), (255, 255, 255), 10)
+        cv2.rectangle(
+            block_mask, (0, 0), tuple(block_mask.shape[::-1]), (255, 255, 255), 10
+        )
 
         # detect contours
-        contours, hierarchy = cv2.findContours(block_mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        contours, hierarchy = cv2.findContours(
+            block_mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE
+        )
         panels = []
 
         for i in range(len(contours)):
@@ -59,9 +74,9 @@ class PanelExtractor:
             # create panel mask
             panel_mask = np.ones_like(block_mask, "int32")
             cv2.fillPoly(panel_mask, [contours[i].astype("int32")], color=(0, 0, 0))
-            panel_mask = panel_mask[y:y+h, x:x+w].copy()
+            panel_mask = panel_mask[y : y + h, x : x + w].copy()
             # apply panel mask
-            panel = img[y:y+h, x:x+w].copy()
+            panel = img[y : y + h, x : x + w].copy()
             panel[panel_mask == 1] = 255
             panels.append(panel)
 
@@ -117,14 +132,16 @@ class PanelExtractor:
             if np.sum(hist[50:200]) / np.sum(hist) < self.paper_th:
                 # If the image passes the paper texture check, process it
                 if not self.keep_text:
-                    img = self.remove_text([img])[0]  # Assuming remove_text can handle individual images or you adjust it accordingly
+                    img = self.remove_text([img])[
+                        0
+                    ]  # Assuming remove_text can handle individual images or you adjust it accordingly
 
                 panels = self.generate_panels(img)
                 base64_panels = []
                 for panel in panels:
                     # Convert panel to base64 encoded PNG
-                    _, encoded_image = cv2.imencode('.png', panel)
-                    base64_string = base64.b64encode(encoded_image).decode('utf-8')
+                    _, encoded_image = cv2.imencode(".png", panel)
+                    base64_string = base64.b64encode(encoded_image).decode("utf-8")
                     base64_panels.append(base64_string)
 
                 # Use the original index as key
