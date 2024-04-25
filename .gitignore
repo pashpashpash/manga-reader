@@ -5,6 +5,7 @@ venv
 .DS_Store
 
 .env
+.env.example
 
 # naruto/
 one-piece/
