@@ -48,7 +48,7 @@ def analyze_images_with_gpt4_vision(
     ]
 
     response = client.chat.completions.create(
-        model="gpt-4-vision-preview", messages=messages, max_tokens=4096
+        model="gpt-4o", messages=messages, max_tokens=4096
     )
 
     return response
@@ -121,7 +121,7 @@ def detect_important_pages(
     ]
 
     response = client.chat.completions.create(
-        model="gpt-4-vision-preview", messages=messages, max_tokens=4096
+        model="gpt-4o", messages=messages, max_tokens=4096
     )
     response_text = response.choices[0].message.content
     tokens = response.usage.total_tokens
@@ -206,7 +206,7 @@ def get_important_panels(
     ]
     try:
         response = client.chat.completions.create(
-            model="gpt-4-vision-preview", messages=messages, max_tokens=4096
+            model="gpt-4o", messages=messages, max_tokens=4096
         )
     except Exception as e:
         if "content_policy_violation" in str(e):
