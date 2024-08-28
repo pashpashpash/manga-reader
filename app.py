@@ -6,6 +6,8 @@ import json
 import os
 import argparse
 import concurrent.futures
+import time
+import random
 
 from manga_extraction import (
     extract_all_pages_as_images,
@@ -33,14 +35,45 @@ from prompts import (
 from citation_processing import extract_text_and_citations, extract_script
 from movie_director import make_movie
 
+from openai import APIError, RateLimitError
+from tenacity import retry, stop_after_attempt, wait_exponential
+
 load_dotenv()  # Load environment variables from .env file
 
+def write_text_to_file(movie_script, manga, volume_number):
+    output_dir = f"{manga}/v{volume_number}"
+    os.makedirs(output_dir, exist_ok=True)
+    output_file = f"{output_dir}/extracted_text.txt"
+    
+    with open(output_file, 'w', encoding='utf-8') as f:
+        for segment in movie_script:
+            f.write(f"Segment Text:\n{segment['text']}\n\n")
+            if 'citations' in segment:
+                f.write(f"Citations: {', '.join(map(str, segment['citations']))}\n\n")
+            f.write("-" * 50 + "\n\n")
+    
+    print(f"Extracted text has been written to {output_file}")
 
-async def main(volume_number, manga):
+@retry(stop=stop_after_attempt(5), wait=wait_exponential(multiplier=1, min=4, max=10))
+def retry_api_call(func, *args, **kwargs):
+    try:
+        return func(*args, **kwargs)
+    except RateLimitError as e:
+        print(f"Rate limit reached. Retrying in a moment...")
+        raise e
+    except APIError as e:
+        if "rate limit" in str(e).lower():
+            print(f"API error related to rate limit. Retrying...")
+            raise RateLimitError(str(e))
+        raise e
+
+async def main(volume_number, manga, text_only=False):
     # Initialize OpenAI client with API key
     client = OpenAI()
-    # get elevenlabs api key from dotenv
-    narration_client = AsyncElevenLabs(api_key=os.getenv("ELEVENLABS_API_KEY"))
+    # Only initialize ElevenLabs client if we're not in text-only mode
+    narration_client = None
+    if not text_only:
+        narration_client = AsyncElevenLabs(api_key=os.getenv("ELEVENLABS_API_KEY"))
 
     print("Extracting all pages from the volume...")
     volume_scaled_and_unscaled = extract_all_pages_as_images(
@@ -49,6 +82,10 @@ async def main(volume_number, manga):
     volume = volume_scaled_and_unscaled["scaled"]
     volume_unscaled = volume_scaled_and_unscaled["full"]
     print("Total pages in volume:", len(volume))
+
+    if len(volume) == 0:
+        print("Error: No images extracted from the PDF. Please check the PDF file.")
+        return
 
     profile_reference = extract_all_pages_as_images(f"{manga}/profile-reference.pdf")[
         "scaled"
@@ -66,9 +103,9 @@ async def main(volume_number, manga):
 
     print("Identifying important pages in the volume...")
 
-    # Function to wrap the detect_important_pages call
     def process_batch(start_idx, pages):
-        response = detect_important_pages(
+        response = retry_api_call(
+            detect_important_pages,
             profile_reference,
             chapter_reference,
             pages,
@@ -78,7 +115,6 @@ async def main(volume_number, manga):
         )
         return start_idx, response
 
-    # Using ThreadPoolExecutor to parallelize API calls
     with concurrent.futures.ThreadPoolExecutor() as executor:
         futures = []
         for i in range(0, len(volume), batch_size):
@@ -125,7 +161,8 @@ async def main(volume_number, manga):
     jobs = jobs["scaled_images"]
 
     # Summarize the images in the first job
-    response = analyze_images_with_gpt4_vision(
+    response = retry_api_call(
+        analyze_images_with_gpt4_vision,
         character_profiles, jobs[0], client, BASIC_PROMPT, BASIC_INSTRUCTIONS
     )
     recap = response.choices[0].message.content
@@ -137,11 +174,12 @@ async def main(volume_number, manga):
     print("\n\n\n_____________\n\n\n")
     print(response.choices[0].message.content)
 
-    # iterate thrugh the rest of the jobs while adding context from previous ones
+    # iterate through the rest of the jobs while adding context from previous ones
     for i, job in enumerate(jobs):
         if i == 0:
             continue
-        response = analyze_images_with_gpt4_vision(
+        response = retry_api_call(
+            analyze_images_with_gpt4_vision,
             character_profiles,
             job,
             client,
@@ -165,6 +203,23 @@ async def main(volume_number, manga):
     print("\n___________\n")
 
     extract_panels(movie_script)
+    print("Extracting panels from movie script...")
+    for i, segment in enumerate(movie_script):
+        print(f"Processing segment {i}")
+        print(f"Number of images in segment: {len(segment['images'])}")
+        print(f"Number of unscaled images in segment: {len(segment['images_unscaled'])}")
+
+        if len(segment['images']) == 0:
+            print(f"Warning: No images found in segment {i}. Skipping panel extraction.")
+            continue
+
+        extract_panels(segment)
+
+        all_panels_base64 = [
+            panel for sublist in segment["panels"].values() for panel in sublist
+        ]
+        print(f"Number of panels extracted: {len(all_panels_base64)}")
+
 
     print("number of segments:", len(movie_script))
 
@@ -178,7 +233,7 @@ async def main(volume_number, manga):
         print("number of images:", len(segment["images"]))
 
     def process_segment(segment_tuple):
-        i, segment = segment_tuple  # Unpack the tuple
+        i, segment = segment_tuple
         panels = []
         for j, page in enumerate(segment["images"]):
             if "panels" in segment:
@@ -192,7 +247,8 @@ async def main(volume_number, manga):
 
         scaled_panels = [scale_base64_image(p) for p in panels]
 
-        response = get_important_panels(
+        response = retry_api_call(
+            get_important_panels,
             profile_reference,
             scaled_panels,
             client,
@@ -201,7 +257,6 @@ async def main(volume_number, manga):
         )
 
         important_panels = response["parsed_response"]
-        # check if important panels is an array
         if not isinstance(important_panels, list):
             important_panels = []
 
@@ -219,28 +274,22 @@ async def main(volume_number, manga):
 
         return i, ip, response["total_tokens"]
 
-    # Initialize variables
     panel_tokens = 0
     important_panels_info = {}
 
-    # Use ThreadPoolExecutor to parallelize the processing
     with concurrent.futures.ThreadPoolExecutor() as executor:
-        # Create a list of futures
         futures = [
             executor.submit(process_segment, (i, segment))
             for i, segment in enumerate(movie_script)
         ]
 
-        # Collect the results as they complete
         for future in concurrent.futures.as_completed(futures):
             i, ip, tokens = future.result()
             if ip:
                 print("Important panels for segment", i, "exist.")
             else:
                 print("No important panels for segment", i)
-            movie_script[i][
-                "important_panels"
-            ] = ip  # Assign the important panels back to the segment
+            movie_script[i]["important_panels"] = ip
             panel_tokens += tokens
 
     ELEVENLABS_PRICE_PER_CHARACTER = 0.0003
@@ -269,23 +318,35 @@ async def main(volume_number, manga):
         " | ",
         "${:,.4f}".format(VISION_PRICE_PER_TOKEN * (total_gpt_tokens)),
     )
-    print(
-        "Total elevenlabs characters:",
-        len(narration_script),
-        " | ",
-        "${:,.4f}".format(ELEVENLABS_PRICE_PER_CHARACTER * (len(narration_script))),
-    )
-    print(
-        "GRAND TOTAL COST",
-        " | ",
-        "${:,.4f}".format(
-            VISION_PRICE_PER_TOKEN * (total_gpt_tokens)
-            + ELEVENLABS_PRICE_PER_CHARACTER * (len(narration_script))
-        ),
-    )
+    
+    if not text_only:
+        narration_script = extract_script(movie_script)
+        print(
+            "Total elevenlabs characters:",
+            len(narration_script),
+            " | ",
+            "${:,.4f}".format(ELEVENLABS_PRICE_PER_CHARACTER * (len(narration_script))),
+        )
+        print(
+            "GRAND TOTAL COST",
+            " | ",
+            "${:,.4f}".format(
+                VISION_PRICE_PER_TOKEN * (total_gpt_tokens)
+                + ELEVENLABS_PRICE_PER_CHARACTER * (len(narration_script))
+            ),
+        )
+    else:
+        print(
+            "GRAND TOTAL COST (GPT only)",
+            " | ",
+            "${:,.4f}".format(VISION_PRICE_PER_TOKEN * (total_gpt_tokens)),
+        )
 
-    await make_movie(movie_script, manga, volume_number, narration_client)
-
+    if text_only:
+        write_text_to_file(movie_script, manga, volume_number)
+        print("Text-only mode: Skipping narration and video creation.")
+    else:
+        await make_movie(movie_script, manga, volume_number, narration_client)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Process manga volumes.")
@@ -293,7 +354,7 @@ if __name__ == "__main__":
         "--manga",
         type=str,
         default="naruto",
-        help="Volume number to process (default: 10)",
+        help="Manga name to process (default: naruto)",
     )
     parser.add_argument(
         "--volume-number",
@@ -301,5 +362,10 @@ if __name__ == "__main__":
         default=10,
         help="Volume number to process (default: 10)",
     )
+    parser.add_argument(
+        "--text-only",
+        action="store_true",
+        help="Output extracted text to a file instead of creating a video",
+    )
     args = parser.parse_args()
-    asyncio.run(main(args.volume_number, args.manga))
+    asyncio.run(main(args.volume_number, args.manga, args.text_only))

@@ -9,3 +9,4 @@ python-dotenv
 torch
 opencv-python
 scikit-image
+tenacity
