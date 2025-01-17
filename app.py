@@ -115,7 +115,7 @@ async def main(volume_number, manga, text_only=False):
         )
         return start_idx, response
 
-    with concurrent.futures.ThreadPoolExecutor() as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
         futures = []
         for i in range(0, len(volume), batch_size):
             pages = volume[i : i + batch_size]
@@ -144,8 +144,8 @@ async def main(volume_number, manga, text_only=False):
     print("Profile pages:", profile_pages)
     print("Chapter pages:", chapter_pages)
 
-    chapter_pages = [1]
-    profile_pages = [0]
+    #chapter_pages = [1]
+    #profile_pages = [0]
     print(f"{len(volume)}")
     print("\n__________\n")
     print("Saving important pages to disk for QA...")

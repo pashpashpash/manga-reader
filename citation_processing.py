@@ -11,7 +11,7 @@ def clean_and_relocate_citations_sequence(text):
     )
 
     # Define a pattern to match sequences of citations that come before a period
-    pattern = re.compile(r"((?:\[\^\d+\])+)(\.)")
+    pattern = re.compile(r"((?:\[\^\{\d+\}\])+)(\.)")
     # Relocate the entire sequence of citations to after the period
     relocated_text = re.sub(pattern, r"\2\1", cleaned_text)
 
@@ -21,7 +21,7 @@ def clean_and_relocate_citations_sequence(text):
 def extract_text_and_citations(text, images, images_unscaled):
     text = clean_and_relocate_citations_sequence(text)
     # Split text by citations, capturing the citations as well
-    parts = re.split(r"(\[\^[\d\]]+\])", text)
+    parts = re.split(r"(\[\^\{\d+\}\])", text)
 
     # Initialize variables to store the current text block and its citations
     current_text = ""
@@ -29,7 +29,7 @@ def extract_text_and_citations(text, images, images_unscaled):
     output = []
 
     for part in parts:
-        if re.match(r"\[\^[\d\]]+\]", part):
+        if re.match(r"\[\^\{\d+\}\]", part):
             current_citations = [int(num) for num in re.findall(r"\d+", part)]
             valid_citations = [num for num in current_citations if num < len(images)]
             citations.extend(valid_citations)
