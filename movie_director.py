@@ -5,13 +5,13 @@ from PIL import Image
 import numpy as np
 import os
 import io
-from moviepy.editor import (
+from moviepy import (
     ImageClip,
     concatenate_videoclips,
     concatenate_audioclips,
     AudioFileClip,
 )
-import moviepy.editor as mpe
+import moviepy as mpe
 
 
 async def make_movie(movie_script, manga, volume_number, narration_client):
@@ -33,7 +33,7 @@ async def add_narrations_to_script(script, client):
             # Since convert is an async generator, we use async for to iterate over it
             async for audio_bytes in client.text_to_speech.convert(
                 text=entry["text"],
-                voice_id="sZmNxSXCR0zfeTkqqiQD",  # Replace with your chosen voice ID
+                voice_id="pNInz6obpgDQGcFmaJgB",  # Replace with your chosen voice ID
             ):
                 audio_bytes_io.write(audio_bytes)
             # After collecting all bytes, we can optionally seek to the start
@@ -91,7 +91,7 @@ def create_movie_from_script(script, manga, volume_number):
                 image
             )  # Assume this function adds image to background
 
-            image_clip = mpe.ImageClip(np.array(final_image)).set_duration(
+            image_clip = mpe.ImageClip(np.array(final_image)).with_duration(
                 image_display_duration
             )
             segment_clips.append(image_clip)
@@ -107,7 +107,7 @@ def create_movie_from_script(script, manga, volume_number):
     final_audio_clip = concatenate_audioclips(audio_clips)
 
     # Set the concatenated audio clip to the final video clip
-    final_video_clip = final_video_clip.set_audio(final_audio_clip)
+    final_video_clip = final_video_clip.with_audio(final_audio_clip)
 
     # Final movie path
     final_movie_path = f"{manga}/v{volume_number}/recap.mp4"
