@@ -14,9 +14,9 @@ from moviepy import (
 import moviepy as mpe
 
 
-async def make_movie(movie_script, manga, volume_number, narration_client):
+async def make_movie(movie_script, manga, volume_number, tts_provider):
     print("Narrating movie script...")
-    await add_narrations_to_script(movie_script, narration_client)
+    await add_narrations_to_script(movie_script, tts_provider)
     print("Editing movie together...")
     create_movie_from_script(movie_script, manga, volume_number)
     print("Movie created successfully!")
@@ -24,20 +24,14 @@ async def make_movie(movie_script, manga, volume_number, narration_client):
 
 
 # Function to generate and update movie script with narrations
-async def add_narrations_to_script(script, client):
+async def add_narrations_to_script(script, tts_provider):
     semaphore = asyncio.Semaphore(5)  # Limit to 5 concurrent requests
 
     async def fetch_narration(entry):
         async with semaphore:
-            audio_bytes_io = BytesIO()
-            # Since convert is an async generator, we use async for to iterate over it
-            async for audio_bytes in client.text_to_speech.convert(
-                text=entry["text"],
-                voice_id="pNInz6obpgDQGcFmaJgB",  # Replace with your chosen voice ID
-            ):
-                audio_bytes_io.write(audio_bytes)
-            # After collecting all bytes, we can optionally seek to the start
-            audio_bytes_io.seek(0)
+            # Each provider returns an MP3 BytesIO seeked to the start, so the
+            # rest of the pipeline is identical regardless of TTS backend.
+            audio_bytes_io = await tts_provider.synthesize(entry["text"])
             # Assign the BytesIO object to the entry's "narration" field
             entry["narration"] = audio_bytes_io
             # Print the length of bytes after writing all chunks
